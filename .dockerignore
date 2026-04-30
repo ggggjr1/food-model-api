@@ -1,0 +1,15 @@
+.git
+*.ipynb
+keras/model-01-0.59.keras
+keras/model-02-0.61.keras
+keras/model-03-0.62.keras
+keras/model-04-0.63.keras
+keras/model-05-0.63.keras
+keras/model-06-0.64.keras
+keras/model-07-0.64.keras
+keras/model-08-0.64.keras
+keras/model-09-0.64.keras
+__pycache__
+*.pyc
+*.pyo
+.env

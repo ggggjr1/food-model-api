@@ -1,11 +1,15 @@
 import os
 import json
 import io
+import logging
 import numpy as np
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, File, UploadFile, HTTPException
+from fastapi import FastAPI, File, UploadFile, HTTPException, Request
 from PIL import Image
 import tensorflow as tf
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 MODEL_PATH = os.getenv("MODEL_PATH", "model.keras")
 CLASS_NAMES_PATH = os.getenv("CLASS_NAMES_PATH", "class_names(foodsg).json")
@@ -24,6 +28,18 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="Food Classification API", lifespan=lifespan)
+
+
+@app.middleware("http")
+async def log_requests(request: Request, call_next):
+    logger.info("--- Incoming Request ---")
+    logger.info(f"Method:  {request.method}")
+    logger.info(f"URL:     {request.url}")
+    logger.info(f"Client:  {request.client}")
+    logger.info(f"Headers: {dict(request.headers)}")
+    response = await call_next(request)
+    logger.info(f"Status:  {response.status_code}")
+    return response
 
 
 @app.get("/")
@@ -47,7 +63,9 @@ async def predict(file: UploadFile = File(...)):
     if model is None:
         raise HTTPException(status_code=503, detail="Model not loaded")
 
+    logger.info(f"Predict — filename: {file.filename}, content_type: {file.content_type}")
     contents = await file.read()
+    logger.info(f"Predict — file size: {len(contents)} bytes")
     try:
         img = Image.open(io.BytesIO(contents)).convert("RGB")
     except Exception:
@@ -65,6 +83,7 @@ async def predict(file: UploadFile = File(...)):
         for i in top_5_indices
     ]
 
+    logger.info(f"Predict — result: {results[0]}")
     return {
         "predicted_class": results[0]["class"],
         "confidence": results[0]["confidence"],
